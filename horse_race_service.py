@@ -57,22 +57,22 @@ class HorseRaceService:
         }
         self.hyper_parameter_values = {
             "c": {
-                "from": 2 ^ (-5),
-                "to": 2 ^ 5,
+                "from": 1 / 64,
+                "to": 64,
                 "unit": 2
             },
             "gamma": {
-                "from": 2 ^ (-5),
-                "to": 2 ^ 5,
+                "from": 1 / 64,
+                "to": 64,
                 "unit": 2
             }
         }
         self.outputs = {
-            "c":"numeric(10,10)",
-            "gamma":"numeric(10,10)",
-            "sale":"numeric(10,10)",
-            "expense": "numeric(10,10)",
-            "profit": "numeric(10,10)"
+            "c":"double",
+            "gamma":"double",
+            "sale":"double",
+            "expense": "double",
+            "profit": "double"
         }
         self.k_fold = 2
 
@@ -86,12 +86,12 @@ class HorseRaceService:
         Analytics.start(
             GridSearch(),
             Parallel(self.spark_app_name),
-            SVM(),
             CrossValidation(self.k_fold),
+            SVM(),
             self.hyper_parameter_values,
+            transformed_data,
             self.features,
             self.answer,
-            transformed_data,
             self.write_score
         )
 
@@ -104,11 +104,12 @@ class HorseRaceService:
         field_names.append('expense')
         field_names.append('profit')
         row = hyper_parameters
-        row['sale'] = sale
-        row['expense'] = expense
-        row['profit'] = sale - expense
+        row['sale'] = str(sale)
+        row['expense'] = str(expense)
+        row['profit'] = str(sale - expense)
         print('result=' + str(row))
         OutputDao().write_data(row)
 
 if __name__ == '__main__':
     HorseRaceService().test()
+
