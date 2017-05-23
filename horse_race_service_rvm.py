@@ -7,6 +7,7 @@ from validation.cross_validation import CrossValidation
 from executor.parallel import Parallel
 from learn.classification.rvm import RVM
 from analytics import Analytics
+from search.grid_search import GridSearch
 import pandas as pd
 
 
@@ -55,6 +56,13 @@ class HorseRaceService:
         self.scale_types = {
             'CONFTYAKU': BooleanScaler('01')
         }
+        self.hyper_parameter_values = {
+            "gamma": {
+                "from": 0.000001,
+                "to": 0.0000000001,
+                "unit": 0.1
+            }
+        }
         self.outputs = {
             "sale":"double",
             "expense": "double",
@@ -69,10 +77,21 @@ class HorseRaceService:
         data = self.input_dao.read_data_as_pdf()
         self.output_dao.init_table(self.outputs)
         transformed_data = Transform(self.valid_ranges, self.scale_types).execute(data)
+        # Analytics.start(
+        #     Parallel(self.spark_app_name),
+        #     CrossValidation(self.k_fold),
+        #     RVM(),
+        #     transformed_data,
+        #     self.features,
+        #     self.answer,
+        #     self.write_score
+        # )
         Analytics.start(
+            GridSearch(),
             Parallel(self.spark_app_name),
             CrossValidation(self.k_fold),
             RVM(),
+            self.hyper_parameter_values,
             transformed_data,
             self.features,
             self.answer,
@@ -80,15 +99,17 @@ class HorseRaceService:
         )
 
     @classmethod
-    def write_score(cls, answer, expect, data, count):
+    def write_score(cls, answer, expect, data, hyper_parameters, count):
         np.set_printoptions(threshold=np.inf)
         print(data)
         print(answer)
         print(expect)
         data = pd.DataFrame(data)
-        data['answer'] = answer
+        data['answer0'] = answer[:,0]
+        data['answer1'] = answer[:,1]
         data['expect'] = expect
-        data.to_csv(str(count) + "_outputs.csv", index=False)
+        data.to_csv(str(hyper_parameters['gamma'])
+                    + "_" + str(count) + "_outputs.csv", index=False)
 
 
 if __name__ == '__main__':
